@@ -21,26 +21,125 @@ county <- read_rds("county.rds")
 
 **Prompt:** Explore the county level data from [here](https://www.ers.usda.gov/data-products/county-level-data-sets/download-data/) with your partner and try to figure out the variables mean. Can you find any "interesting" observations? Which variables are worth looking at? `poverty` is the percentage of the county living in poverty is 2018. `less_than_hs` is the percentage of the county without at least a high school diploma. `hs` is the percent of the county who have a high school degree, but no further education.
 
+```{r scene 1, echo=FALSE}
+glimpse(county)
+
+sample_n(county, size = 10, replace = FALSE)
+
+summary(county)
+
+county %>% 
+  select(name, poverty, hs)
+```
 
 
 # Scene 2
 
 **Prompt** Let’s start by exploring our numerical outcome variable `poverty` and our numerical explanatory variable `less_than_hs`. What is the average poverty rate in the US? How does this compare with that of your county (if not from US look up Middlesex County - the county that Cambridge, MA is in)? Furthermore, what is the average percentage of adults without and with a high school diploma? Which state's county has the highest percentage of adults without a high school diploma?
 
+```{r scene 2, echo=FALSE}
+
+county %>%
+  summarize(avgPovery = mean(poverty))
+
+county %>%
+  filter(name == "New Hanover County") %>%
+  pull(poverty)
+
+county %>%
+  summarize(without_hs = mean(less_than_hs,),
+            with_hs = mean(hs))
+
+county %>%
+  arrange(desc(less_than_hs)) %>%
+  select(state, name, less_than_hs)
+```
+
 
 # Scene 3
 
 **Prompt** What is the correlation coefficient of `poverty` and `less_than_hs`? What does it mean?
 
+```{r scene 3, echo=FALSE}
+
+county %>% 
+  summarize(correlation = cor(poverty, less_than_hs))
+
+```
+
+# Scene 3a:
+
+**Prompt** Assume we are trying to understand the causes of poverty. Chapter 11 discusses two types of models: explanatory and predictive. Which kind is this? Is this a causal relationship? Discuss this in the context of the Rubin Causal Model and potential outcomes.
+
+==> EXPLANATORY
+
+note: models do not exist independent of someone's motivations
+
+alt prompt: given the rate of less_than_hs for an county, what is the likely poverty rate? ==> PREDICTIVE
+
+# Scene 3B
+
+**Prompt** Assume we want to create an explanatory model. Create a new variable, `good_education`, which is 1 if `less_than_hs`is less than 13 and 0 if it is not. Discuss this in the context of the Rubin Causal Model and potential outcomes. Write down the units, the treatments, and the outcomes. Define the causal effect of `good_education` on poverty rate.
+
+```{r scene 3b, echo=FALSE}
+county %>% 
+  mutate(good_education = ifelse(less_than_hs < 13, 1, 0)) %>%
+  summarize(correlation = cor(less_than_hs, good_education))
+
+```
+
+units: individual counties
+treatment: send more than 13% of population to high school
+outcomes: 
 
 # Scene 4
 
 **Prompt** Use a scatterplot to visualize this data, including a straight line of best fit.
 
+```{r scene 4, echo=FALSE}
+
+revised <- county %>%
+  mutate(less_than_hs_2 = less_than_hs/100)
+
+lm(poverty ~ less_than_hs, county)
+lm(poverty ~ less_than_hs_2, revised)
+
+revised %>%
+  summarize(correlation = cor(poverty, less_than_hs_2))
+
+graph <- ggplot(county, aes(x = less_than_hs, y = poverty)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  theme_classic() +
+  labs(x = "Percent of adults with less than a high school diploma",
+       y = "Poverty rate",
+       title = "Relationship between Poverty Rate and High School Education",
+       subtle = "One data point per county")
+
+graph
+
+# review difference between correlation coefficient and slope
+```
 
 # Scene 5
 
 **Prompt** Create an animation of the scatterplot above with the percent of adults with less than a high school diploma on the x axis and the poverty rate in the y axis. This scatterplot should transition through the four US regions. Hint: classify the 'county' data into the 4 US regions. Then create an animation of a scatterplot that transitions through each region. Hint: Read the [Animation appendix](https://davidkane9.github.io/PPBDS/C-animation.html) of the *[Primer](https://davidkane9.github.io/PPBDS/)*. You only need to add one command to the basic static `ggplot()` call.
+
+```{r scene 5, echo=FALSE}
+
+ggplot(county, aes(x = less_than_hs,
+                   y = poverty,
+                   fill = region,
+                   color = region)) +
+  geom_point() +
+  labs(x = "Percent of adults with less than a high school diploma",
+       y = "Poverty rate",
+       title = "Relationship between Poverty Rate and High School Education",
+       subtle = "One data point per county") +
+    transition_manual(region)
+
+
+```
 
 
 # Scene 6
