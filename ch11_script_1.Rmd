@@ -10,6 +10,7 @@ library(broom)
 library(skimr)
 library(gganimate)
 library(tidyverse)
+library(gifski)
 
 county <- read_rds("county.rds")
 ```
